@@ -1,35 +1,57 @@
+"""
+config.py  --  The single "Secrets Vault" boundary
+--------------------------------------------------
+The ONLY module that reads credentials. Everyone else imports names from here.
+
+Secret resolution order (works everywhere):
+    1. st.secrets   -> Streamlit Cloud (Manage app -> Settings -> Secrets, TOML)
+    2. os.environ   -> Hugging Face Space Secrets / local .env / Colab
+This means the exact same code runs on Streamlit, HF, and locally with no edits.
+"""
+
 import os
 
-def load_secret(name: str) -> str:
-    """Read a secret from Colab, Streamlit, or plain env vars — whichever is available."""
-    # 1) Streamlit Community Cloud
-    try:
-        import streamlit as st
-        if name in st.secrets:
-            return st.secrets[name]
-    except Exception:
-        pass
-    # 2) Colab
-    try:
-        from google.colab import userdata
-        val = userdata.get(name)
-        if val:
-            return val
-    except Exception:
-        pass
-    # 3) Plain environment variables (HF Space, local)
-    return os.getenv(name, "")
+# Optional local .env support (does nothing on Streamlit/HF, which is fine).
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-# --- API keys ---
-GROQ_API_KEY   = load_secret("GROQ_API_KEY")
-TAVILY_API_KEY = load_secret("TAVILY_API_KEY")
+# Optional Streamlit secrets support (only present when running under Streamlit).
+try:
+    import streamlit as st
+    _ST_SECRETS = dict(st.secrets)
+except Exception:
+    _ST_SECRETS = {}
 
-# --- LangSmith tracing config ---
-os.environ["LANGSMITH_API_KEY"]  = load_secret("LANGSMITH_API_KEY")
-os.environ["LANGSMITH_TRACING"]  = "true"
-os.environ["LANGSMITH_PROJECT"]  = "streamlit-groq-tavily-agent"
-os.environ["LANGSMITH_ENDPOINT"] = "https://api.smith.langchain.com"
 
-# --- Model config ---
-GROQ_BASE_URL = "https://api.groq.com/openai/v1"
-GROQ_MODEL    = "qwen/qwen3-32b"
+def load_secret(name: str, required: bool = True, default: str | None = None) -> str | None:
+    """Fetch a secret from Streamlit secrets first, then environment variables."""
+    value = _ST_SECRETS.get(name) or os.getenv(name) or default
+    if required and not value:
+        raise EnvironmentError(
+            f"Missing secret '{name}'. Add it in Streamlit -> Settings -> Secrets "
+            f"(TOML), HF -> Settings -> Secrets, or a local .env file."
+        )
+    return value
+
+
+# ---- Secrets ----
+# HF_TOKEN        = load_secret("HF_TOKEN")
+GROQ_API_KEY    = load_secret("GROQ_API_KEY")
+TAVILY_API_KEY  = load_secret("TAVILY_API_KEY")
+LANGSMITH_API_KEY = load_secret("LANGSMITH_API_KEY", required=False)  # tracing optional
+
+# ---- Non-sensitive config (safe defaults; override via env/Variables) ----
+# HF_BASE_URL   = load_secret("HF_BASE_URL",   required=False, default="https://router.huggingface.co/v1")
+GROQ_BASE_URL = load_secret("GROQ_BASE_URL", required=False, default="https://api.groq.com/openai/v1")
+
+# HF_MODEL   = load_secret("HF_MODEL",   required=False, default="openai/gpt-oss-120b")
+GROQ_MODEL = load_secret("GROQ_MODEL", required=False, default="qwen/qwen3-32b")  # confirm exact ID in Groq console
+
+TAVILY_MAX_RESULTS = int(load_secret("TAVILY_MAX_RESULTS", required=False, default="1"))
+
+# LangSmith config (non-secret parts)
+LANGSMITH_PROJECT  = load_secret("LANGSMITH_PROJECT",  required=False, default="hf-groq-tavily-agent")
+LANGSMITH_ENDPOINT = load_secret("LANGSMITH_ENDPOINT", required=False, default="https://api.smith.langchain.com")
