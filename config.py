@@ -48,7 +48,7 @@ LANGSMITH_API_KEY = load_secret("LANGSMITH_API_KEY", required=False)  # tracing 
 GROQ_BASE_URL = load_secret("GROQ_BASE_URL", required=False, default="https://api.groq.com/openai/v1")
 
 # HF_MODEL   = load_secret("HF_MODEL",   required=False, default="openai/gpt-oss-120b")
-GROQ_MODEL = load_secret("GROQ_MODEL", required=False, default="qwen/qwen3-32b")  # confirm exact ID in Groq console
+GROQ_MODEL = load_secret("GROQ_MODEL", required=False, default="qwen/qwen3.8-27b")  # confirm exact ID in Groq console
 
 TAVILY_MAX_RESULTS = int(load_secret("TAVILY_MAX_RESULTS", required=False, default="1"))
 
