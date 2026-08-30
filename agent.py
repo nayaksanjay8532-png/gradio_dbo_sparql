@@ -24,7 +24,7 @@ If information requires a web search, use the web_search tool.
 def build_agent():
     """Construct the agent (model=Groq llm2 + web_search tool)."""
     return create_agent(
-        model=llm2,
+        model=llm,
         tools=ALL_TOOLS,
         system_prompt=SYSTEM_PROMPT,
     )
