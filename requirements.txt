@@ -1,5 +1,6 @@
-langchain
+langchain 
 langchain-openai 
+langsmith 
 tavily-python 
-streamlit
+streamlit 
 python-dotenv
