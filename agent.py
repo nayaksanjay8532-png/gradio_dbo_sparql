@@ -8,7 +8,7 @@ Tracing is enabled here (before the agent is built) so all runs are captured.
 from langchain.agents import create_agent
 
 from tracing import setup_tracing   # enable LangSmith BEFORE building the agent
-from llms import llm2
+from llms import llm
 from tools import ALL_TOOLS
 
 # Turn on tracing (no-op if LANGSMITH_API_KEY isn't set).
