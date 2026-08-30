@@ -1,31 +1,36 @@
+"""
+streamlit_app.py  --  Host entry point (what Streamlit Cloud runs)
+------------------------------------------------------------------
+Thin Streamlit chat UI. All real work is delegated to run_agent().
+Set this filename in Streamlit's "Main File Path" field.
+"""
 
-import config          # noqa: F401  (loads keys + LangSmith config on import)
 import streamlit as st
-from agent import agent
 
-st.set_page_config(page_title="Web-Search Agent", page_icon="🔍")
-st.title("🔍 Web-Search Agent (Groq + Tavily)")
-st.caption("Ask anything. Uses Tavily for live web info and Groq for fast inference.")
+from agent import run_agent
 
-# Keep chat history in session state
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+st.set_page_config(page_title="Research Assistant Agent", page_icon="🔎")
+st.title("🔎 Research Assistant Agent")
+st.caption("LangChain agent · Groq inference · Tavily web search · LangSmith tracing")
 
-# Render past messages
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# Replay past turns
+for role, msg in st.session_state.history:
+    st.chat_message(role).write(msg)
 
 # Handle new input
-if prompt := st.chat_input("Type your question…"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+if prompt := st.chat_input("Ask me something..."):
+    st.session_state.history.append(("user", prompt))
+    st.chat_message("user").write(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Thinking…"):
-            result = agent.invoke({"messages": [{"role": "user", "content": prompt}]})
-            answer = result["messages"][-1].content
-            st.markdown(answer)
+        with st.spinner("Thinking..."):
+            try:
+                reply = run_agent(prompt)
+            except Exception as e:
+                reply = f"Error: {e}"
+            st.write(reply)
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.session_state.history.append(("assistant", reply))
