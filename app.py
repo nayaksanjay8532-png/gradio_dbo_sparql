@@ -1,36 +1,34 @@
 """
-streamlit_app.py  --  Host entry point (what Streamlit Cloud runs)
-------------------------------------------------------------------
-Thin Streamlit chat UI. All real work is delegated to run_agent().
-Set this filename in Streamlit's "Main File Path" field.
+app.py  --  Host entry point (what Render runs)
+-----------------------------------------------
+Thin Gradio chat UI. All real work is delegated to run_agent().
+Binds to 0.0.0.0 and the PORT Render provides via env var.
 """
 
-import streamlit as st
+import os
+
+import gradio as gr
 
 from agent import run_agent
 
-st.set_page_config(page_title="Research Assistant Agent", page_icon="🔎")
-st.title("🔎 Research Assistant Agent")
-st.caption("LangChain agent · Groq inference · Tavily web search · LangSmith tracing")
 
-if "history" not in st.session_state:
-    st.session_state.history = []
+def chat_fn(message, history):
+    """Called by Gradio for each user turn. `history` is managed by ChatInterface."""
+    try:
+        return run_agent(message)
+    except Exception as e:
+        return f"Error: {e}"
 
-# Replay past turns
-for role, msg in st.session_state.history:
-    st.chat_message(role).write(msg)
 
-# Handle new input
-if prompt := st.chat_input("Ask me something..."):
-    st.session_state.history.append(("user", prompt))
-    st.chat_message("user").write(prompt)
+demo = gr.ChatInterface(
+    fn=chat_fn,
+    type="messages",
+    title="🔎 Research Assistant Agent",
+    description="LangChain agent · Groq inference · Tavily web search · LangSmith tracing",
+    examples=["What is the current temperature in Mumbai?"],
+)
 
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            try:
-                reply = run_agent(prompt)
-            except Exception as e:
-                reply = f"Error: {e}"
-            st.write(reply)
-
-    st.session_state.history.append(("assistant", reply))
+if __name__ == "__main__":
+    # Render injects PORT; default 7860 for local runs.
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(server_name="0.0.0.0", server_port=port)
