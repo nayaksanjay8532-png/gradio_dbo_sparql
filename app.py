@@ -22,7 +22,6 @@ def chat_fn(message, history):
 
 demo = gr.ChatInterface(
     fn=chat_fn,
-    type="messages",
     title="🔎 Research Assistant Agent",
     description="LangChain agent · Groq inference · Tavily web search · LangSmith tracing",
     examples=["What is the current temperature in Mumbai?"],
