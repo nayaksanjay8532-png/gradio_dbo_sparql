@@ -4,3 +4,4 @@ langsmith
 tavily-python 
 gradio>=5.0
 python-dotenv
+SPARQLWrapper
